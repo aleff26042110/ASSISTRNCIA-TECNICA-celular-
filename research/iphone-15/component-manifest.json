@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "device": "iPhone 15",
+  "representation": "educational",
+  "regionalVariant": "generic",
+  "disclaimer": "Internal shapes and positions are simplified from public repair documentation and teardown photography.",
+  "components": [
+    {
+      "id": "screen",
+      "name": "Super Retina XDR display",
+      "accuracy": "documented",
+      "sourceIds": ["apple-specs", "apple-repair-manual"]
+    },
+    {
+      "id": "frame",
+      "name": "Aluminum enclosure",
+      "accuracy": "documented",
+      "sourceIds": ["apple-specs", "apple-internal-view"]
+    },
+    {
+      "id": "back",
+      "name": "Back glass",
+      "accuracy": "documented",
+      "sourceIds": ["apple-repair-manual"]
+    },
+    {
+      "id": "battery",
+      "name": "Lithium-ion battery",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-repair-manual", "ifixit-teardown"]
+    },
+    {
+      "id": "board",
+      "name": "Logic board",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-internal-view", "ifixit-teardown"]
+    },
+    {
+      "id": "main-camera",
+      "name": "48 MP main camera",
+      "accuracy": "documented",
+      "sourceIds": ["apple-specs", "apple-repair-manual"]
+    },
+    {
+      "id": "ultra-camera",
+      "name": "12 MP ultra wide camera",
+      "accuracy": "documented",
+      "sourceIds": ["apple-specs", "apple-repair-manual"]
+    },
+    {
+      "id": "front-camera",
+      "name": "TrueDepth camera",
+      "accuracy": "documented",
+      "sourceIds": ["apple-repair-manual"]
+    },
+    {
+      "id": "wireless-coil",
+      "name": "MagSafe and NFC assembly",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-specs", "ifixit-teardown"]
+    },
+    {
+      "id": "taptic",
+      "name": "Taptic Engine",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-internal-view", "apple-repair-manual"]
+    },
+    {
+      "id": "bottom-speaker",
+      "name": "Bottom speaker",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-internal-view", "apple-repair-manual"]
+    },
+    {
+      "id": "top-speaker",
+      "name": "Top speaker",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-internal-view", "apple-repair-manual"]
+    },
+    {
+      "id": "connector",
+      "name": "Camera flex connector",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-internal-view", "ifixit-teardown"]
+    },
+    {
+      "id": "lenses",
+      "name": "Camera lens cover",
+      "accuracy": "inferred",
+      "sourceIds": ["apple-specs", "ifixit-teardown"]
+    },
+    {
+      "id": "usb",
+      "name": "USB-C connector assembly",
+      "accuracy": "documented",
+      "sourceIds": ["apple-specs", "apple-repair-manual"]
+    }
+  ]
+}

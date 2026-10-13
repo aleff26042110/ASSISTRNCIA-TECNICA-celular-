@@ -1,0 +1,26 @@
+[
+  {
+    "id": "apple-specs",
+    "publisher": "Apple",
+    "title": "iPhone 15 — Technical Specifications",
+    "url": "https://support.apple.com/en-us/111831"
+  },
+  {
+    "id": "apple-internal-view",
+    "publisher": "Apple",
+    "title": "iPhone 15 internal views and orderable parts",
+    "url": "https://support.apple.com/en-us/104901"
+  },
+  {
+    "id": "apple-repair-manual",
+    "publisher": "Apple",
+    "title": "iPhone 15 Repair Manual",
+    "url": "https://support.apple.com/en-us/104900"
+  },
+  {
+    "id": "ifixit-teardown",
+    "publisher": "iFixit",
+    "title": "iPhone 15 teardown",
+    "url": "https://www.ifixit.com/News/82867/iphone-15-teardown-reveals-software-lockdown"
+  }
+]
