@@ -24,7 +24,7 @@ npm run build
 npm run test:e2e
 ```
 
-Os testes de navegador usam `/usr/bin/chromium`. Em outro ambiente, defina `CHROMIUM_PATH` para um Chromium instalado. O teste configura renderização WebGL por software para ambientes sem GPU. Capturas e PDF de teste são gerados em `/tmp`.
+Os testes de navegador usam o Chromium do Playwright, ou um executável definido por `CHROMIUM_PATH`. Fora do Windows, a configuração força WebGL por software para ambientes sem GPU; no Windows, usa a aceleração disponível com fallback por software. Para forçar esse modo no Windows, defina `CELLVISION_SOFTWARE_WEBGL=1`. Capturas e PDF dos fluxos antigos são gerados em `/tmp`; capturas do modelo detalhado ficam em `test-results/`.
 
 ## Fluxo
 
@@ -38,7 +38,23 @@ Diagnósticos e orçamento em edição são persistidos automaticamente pelo Zus
 
 ## Modelos e expansão
 
-`src/data.ts` mantém a geometria demonstrativa e os componentes. `GLBModel` em `src/Viewer.tsx` fornece carregamento com `useGLTF`, devendo ser colocado dentro de Suspense. Modelos reais exigem mapeamento de nomes de meshes para IDs de componentes, posições, escalas, licenças e revisão técnica; esse mapeamento ainda não está implementado. Não confunda o modelo genérico com uma reprodução exata de aparelho comercial.
+`src/data.ts` mantém o catálogo técnico e o caminho do modelo detalhado. A bancada carrega `public/models/smartphone-disassembly.glb` por padrão, com seleção, montagem e desmontagem dos conjuntos. **Esquema técnico** alterna para a geometria procedural. Se o GLB falhar, esse esquema assume automaticamente sem interromper o diagnóstico.
+
+O arquivo enviado, `smartphone-3d-model-d498a2fb.glb`, representa um smartphone já desmontado em uma única malha. Uma cópia original fica em `research/iphone-15/assets/smartphone-source.glb`. `scripts/prepare-smartphone-model.mjs` recupera 15 conjuntos desconectados, simplifica a geometria de 1.897.110 para 142.266 triângulos e preserva as três texturas incorporadas. Para reconstruir o arquivo servido:
+
+```sh
+npm run prepare:model
+# Ou informe um arquivo de origem e um destino:
+node scripts/prepare-smartphone-model.mjs "caminho/do/modelo.glb" "public/models/smartphone-disassembly.glb"
+```
+
+Esse preparador é específico para a estrutura do arquivo fornecido e exige 15 conjuntos. O resultado não precisa de decodificador ou textura externos. `src/ImportedPhone.tsx` alinha os conjuntos pelo eixo principal e adapta as dimensões ao catálogo; `src/disassembly.ts` associa as malhas aos componentes e define os intervalos da animação. Tela e chassis usam mais de uma malha. TrueDepth frontal, alto-falante superior e cobertura das lentes continuam representados pelo esquema procedural porque o arquivo não fornece conjuntos identificáveis para esses componentes. O mapeamento é ilustrativo; não comprova correspondência física ou precisão de engenharia do iPhone 15.
+
+Os atalhos **Montado**, **Abrir**, **Internos** e **Separar** controlam a sequência; **Isolar peça** centraliza apenas o componente selecionado. A animação respeita movimento reduzido e o nível médio evita as passagens de sombras da qualidade alta. Proveniência e limites do arquivo: [modelo importado](research/iphone-15/assets/README.md).
+
+A seleção das malhas detalhadas usa BVH para acelerar os testes de interseção do ponteiro. O visualizador evita renderizações disparadas apenas pela edição dos formulários. A reprodução limita o avanço por quadro para impedir saltos de etapa quando o navegador demora a renderizar; a câmera e as peças usam amortecimento exponencial com tempo real. O botão **Inverter** indica quando a remontagem está ativa.
+
+Arrastar o modelo não seleciona uma peça. Na qualidade baixa/média, a câmera acompanha o gesto sem inércia; a qualidade alta habilita amortecimento dos controles, exceto quando o usuário solicita movimento reduzido. Isso permite que a renderização sob demanda fique ociosa após a interação.
 
 `CameraModule` e `SmartphoneModel` estão definidos em `src/types.ts`. O catálogo atual é único e demonstrativo. Não há detecção automática de defeitos nem preços de mercado predefinidos.
 
@@ -46,7 +62,7 @@ A camada `QuoteRepository` pode receber uma implementação Supabase futura. Ant
 
 ## Limites conhecidos
 
-A geometria é esquemática, sem fidelidade de engenharia. Reflexos são produzidos por luzes e materiais PBR, sem HDRI externo. Não há integração de pagamento, catálogo de aparelhos comerciais ou compartilhamento público. PDF, impressão e WhatsApp devem ser revisados pelo técnico antes de apresentar ao cliente. O WhatsApp abre a mensagem; não faz envio automático.
+A geometria é educacional, sem fidelidade de engenharia. O modelo importado conserva as texturas do arquivo fornecido; componentes complementares são esquemáticos. Reflexos são produzidos por luzes e materiais PBR, sem HDRI externo. Não há integração de pagamento, catálogo de aparelhos comerciais ou compartilhamento público. PDF, impressão e WhatsApp devem ser revisados pelo técnico antes de apresentar ao cliente. O WhatsApp abre a mensagem; não faz envio automático.
 
 ## Ordens de serviço
 

@@ -320,6 +320,7 @@ export const phone: SmartphoneModel = {
   name: "iPhone 15",
   brand: "Apple",
   demonstration: true,
+  glbUrl: `${import.meta.env.BASE_URL}models/smartphone-disassembly.glb`,
   disclaimer:
     "Visualização educacional inspirada no iPhone 15. Formas e posições internas são simplificadas; este projeto não é afiliado à Apple.",
   components,

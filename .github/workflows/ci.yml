@@ -1,0 +1,32 @@
+name: Validar CellVision 3D
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Verificar regras e cálculos
+        run: npm test
+      - name: Gerar build de produção
+        run: npm run build
+      - name: Instalar Chromium para testes
+        run: npx playwright install --with-deps chromium
+      - name: Selecionar Chromium instalado
+        run: node -e "console.log('CHROMIUM_PATH=' + require('@playwright/test').chromium.executablePath())" >> "$GITHUB_ENV"
+      - name: Verificar interface e fluxos
+        run: npm run test:e2e

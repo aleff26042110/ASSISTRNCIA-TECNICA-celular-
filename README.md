@@ -8,7 +8,7 @@ Aplicação web em português brasileiro para assistências técnicas de celular
 
 ### Bancada 3D
 
-![Bancada 3D com desmontagem progressiva e painel de diagnóstico](docs/images/bancada-3d.png)
+![Bancada 3D com modelo detalhado, desmontagem progressiva e painel de diagnóstico](docs/images/bancada-3d-modelo.png)
 
 ### Ordens de serviço
 
@@ -19,7 +19,8 @@ Capturas reais da aplicação. O atendimento exibido usa dados fictícios de dem
 ## Funcionalidades
 
 - **Visualizador 3D:** rotação, zoom, vistas frontal/traseira/lateral, restauração da câmera e seleção de peças por clique ou lista.
-- **Desmontagem progressiva:** controle de 0% a 100%, pausa, inversão e restauração, com transformações próprias de cada peça.
+- **Modelo detalhado:** GLB fornecido pelo usuário, com texturas preservadas e 15 conjuntos recuperados; alternância para o esquema técnico e recuperação automática quando o arquivo não carrega.
+- **Desmontagem progressiva:** controle de 0% a 100%, atalhos Montado/Abrir/Internos/Separar, pausa, inversão, restauração, nomes dos componentes e isolamento da peça selecionada.
 - **Diagnóstico:** sintomas, avaliação técnica, estado da peça, observações e valores de peça e mão de obra. Defeitos são registrados pelo técnico.
 - **Orçamentos:** várias peças, desconto, cálculo em centavos, salvamento local, exportação PDF, impressão e mensagem preparada para WhatsApp.
 - **Modo cliente:** apresentação simplificada do diagnóstico, orçamento e prazo no mesmo dispositivo.
@@ -91,7 +92,7 @@ Depois, defina `CHROMIUM_PATH` com o caminho do navegador instalado ou gerencie 
 node -e "console.log(require('@playwright/test').chromium.executablePath())"
 ```
 
-A suíte contém **13 testes de regras/cálculo** e **16 cenários de navegador**, incluindo rotação, zoom, desmontagem, seleção, orçamento, PDF, persistência, OS, privacidade da apresentação, falhas de armazenamento e responsividade. O workflow do GitHub executa o build e essas suítes em pushes e pull requests.
+A suíte cobre regras e cálculo, integridade do GLB, rotação, zoom, desmontagem por etapas, isolamento, recuperação de falhas do modelo, seleção, orçamento, PDF, persistência, OS, privacidade da apresentação, falhas de armazenamento e responsividade. O workflow do GitHub executa o build e essas suítes em pushes e pull requests.
 
 ## Tecnologias
 

@@ -1,0 +1,90 @@
+{
+  "evidence_id": "ev_b2835d1f426f95c457d6e9e8ca33b9468fd9e69797ea8e5e0e8fba7e9a2da76e",
+  "predicate_type": "rea.analysis",
+  "operation": "inspect_web_network_capture",
+  "provider": {
+    "id": "har-schema/lossless-json",
+    "name": "REA HAR capture adapter",
+    "version": "har-schema@2.0.0;jsonc-parser@3.3.1;lossless-json@4.3.1"
+  },
+  "confidence": "observed",
+  "authority": "historical-reference",
+  "subject": {
+    "name": "public-pages.har",
+    "digest": {
+      "sha256": "5a495e3d9dff52263aa5c1e0a00cbba9461a80b7dff6009751cd743dc4b29ddd"
+    },
+    "format": "file",
+    "architecture": null,
+    "local_path": "/workspace/research/repairdesk/public-pages.har"
+  },
+  "parameters": {
+    "capture_path": "/workspace/research/repairdesk/public-pages.har",
+    "format": "har",
+    "record_ordinals": [0, 1, 2, 3],
+    "sensitive_value_count": 0
+  },
+  "limitations": [
+    "This is retained producer evidence, without live browser transaction IDs, scenario provenance, execution attribution or deployment authenticity. Recorded URLs are never fetched.",
+    "Every record is decoded before selection; no partial success is returned on malformed input or a resource limit.",
+    "Known authentication headers/cookies and explicitly marked literal values are excluded. Unknown extension names do not establish sensitivity.",
+    "A 32 MiB input, 96 MiB reply and 64-level nesting budget bound complete evidence. HAR uses a 192 MiB Node old-generation heap; native decoding uses a 768 MiB Linux address-space limit. Each owned command has a 30-second deadline with independent cleanup."
+  ],
+  "runtime_attribution": "unknown",
+  "record_summary": [
+    {
+      "page": "homepage",
+      "url": "https://www.repairdesk.co/",
+      "final_url": "https://www.repairdesk.co/",
+      "status": 200,
+      "sha256": "7a8a4cb47aae66b74ef8345b48b5caeab70349116bd7257289cf0a4a33f642a7",
+      "captured_at": "2026-10-13T01:48:11.223911+00:00",
+      "ordinal": 0,
+      "location": {
+        "kind": "json-pointer",
+        "pointer": "/log/entries/0"
+      }
+    },
+    {
+      "page": "tickets",
+      "url": "https://www.repairdesk.co/features/repair-ticket-management-software/",
+      "final_url": "https://www.repairdesk.co/features/repair-ticket-management-software/",
+      "status": 200,
+      "sha256": "debc774bece161d42c2d4af875a04afab8e44d00d431798db6bcd8a7e72a3dae",
+      "captured_at": "2026-10-13T01:48:11.538286+00:00",
+      "ordinal": 1,
+      "location": {
+        "kind": "json-pointer",
+        "pointer": "/log/entries/1"
+      }
+    },
+    {
+      "page": "inventory",
+      "url": "https://www.repairdesk.co/features/inventory-management-software/",
+      "final_url": "https://www.repairdesk.co/features/inventory-management-software/",
+      "status": 200,
+      "sha256": "cae2b06c7241cd05c05ae41e96220a2d2daaf5a1ea487017f451414fe8f4eaf0",
+      "captured_at": "2026-10-13T01:48:11.827697+00:00",
+      "ordinal": 2,
+      "location": {
+        "kind": "json-pointer",
+        "pointer": "/log/entries/2"
+      }
+    },
+    {
+      "page": "work-orders",
+      "url": "https://www.repairdesk.co/work-order-management-software/",
+      "final_url": "https://www.repairdesk.co/work-order-management-software/",
+      "status": 200,
+      "sha256": "cedd82180aae794ba98f0fbff87964cf3857119494a852c3e53a58045adb99d5",
+      "captured_at": "2026-10-13T01:48:12.105167+00:00",
+      "ordinal": 3,
+      "location": {
+        "kind": "json-pointer",
+        "pointer": "/log/entries/3"
+      }
+    }
+  ],
+  "complete_evidence_path": "/workspace/research/repairdesk/rea-public-pages-evidence.json",
+  "note": "Resumo para revisão. O registro REA completo e o HAR original permanecem fora do checkout; a captura é HTTP pública, não observação da aplicação autenticada."
+}

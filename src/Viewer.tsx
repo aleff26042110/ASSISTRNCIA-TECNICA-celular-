@@ -1,6 +1,8 @@
 import {
   Component,
+  memo,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -18,11 +20,25 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { components } from "./data";
+import ImportedPhone from "./ImportedPhone";
+import type { AssemblyGeometry } from "./ImportedPhone";
+import { partProgress } from "./disassembly";
 import { useStore } from "./store";
 import type { PhoneComponent } from "./types";
 export function GLBModel({ url }: { url: string }) {
   const { scene } = useGLTF(url);
-  return <primitive object={scene.clone()} />;
+  const clone = useMemo(() => scene.clone(), [scene]);
+  return <primitive object={clone} />;
+}
+class ModelBoundary extends Component<{
+  children: ReactNode;
+  fallback: ReactNode;
+  onError: () => void;
+}, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onError(); }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -40,7 +56,15 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
     );
   }
 }
-function Part({ part }: { part: PhoneComponent }) {
+function Part({ part, model, isolated = false, labels = false, reducedMotion = false, labelAllowed = true, dragged }: {
+  part: PhoneComponent;
+  model?: AssemblyGeometry;
+  isolated?: boolean;
+  labels?: boolean;
+  reducedMotion?: boolean;
+  labelAllowed?: boolean;
+  dragged?: { current: boolean };
+}) {
   const ref = useRef<THREE.Group>(null);
   const target = useMemo(() => new THREE.Vector3(), []);
   const assembled = useMemo(
@@ -52,23 +76,45 @@ function Part({ part }: { part: PhoneComponent }) {
     [part.explodedPosition],
   );
   const invalidate = useThree((s) => s.invalidate);
-  const { selected, select, explosion, diagnoses } = useStore();
+  const selected = useStore((s) => s.selected);
+  const select = useStore((s) => s.select);
+  const explosion = useStore((s) => s.explosion);
+  const faulty = useStore((s) => s.diagnoses[part.id]?.state === "Defeito confirmado");
   useEffect(() => {
     invalidate();
-  }, [explosion, selected, diagnoses, invalidate]);
+  }, [explosion, selected, faulty, isolated, labels, reducedMotion, invalidate]);
   const active = selected === part.id;
-  const faulty = diagnoses[part.id]?.state === "Defeito confirmado";
+  useEffect(() => {
+    if (model) {
+      model.material.emissive.set(active ? "#1684ed" : faulty ? "#a82032" : "#000000");
+      model.material.emissiveIntensity = active ? 0.24 : faulty ? 0.2 : 0;
+      invalidate();
+    }
+  }, [model, active, faulty, invalidate]);
   useFrame((_, dt) => {
-    if (!ref.current) return;
-    const progress = THREE.MathUtils.smoothstep(explosion / 100, part.stage, 1);
+    if (!ref.current?.visible) return;
+    const progress = partProgress(explosion, part.stage);
     target.copy(assembled).lerp(exploded, progress);
-    ref.current.position.lerp(target, 1 - Math.exp(-dt * 10));
-    if (ref.current.position.distanceTo(target) > 0.001) invalidate();
+    if (isolated) {
+      const original = components.find((component) => component.id === part.id)!.originalPosition;
+      target.set(assembled.x - original[0], assembled.y - original[1], assembled.z - original[2]);
+    }
+    const damping = reducedMotion ? 1 : 1 - Math.exp(-dt * 12);
+    const rotation = isolated ? 0 : progress * (part.id === "back" ? -0.12 : 0.04);
+    ref.current.position.lerp(target, damping);
     ref.current.rotation.y = THREE.MathUtils.lerp(
       ref.current.rotation.y,
-      progress * (part.id === "back" ? -0.12 : 0.04),
-      1 - Math.exp(-dt * 10),
+      rotation,
+      damping,
     );
+    if (model && part.id === "frame") {
+      const opacity = isolated ? 1 : 1 - 0.68 * partProgress(explosion, 0.3, 0.25);
+      model.material.opacity = THREE.MathUtils.lerp(model.material.opacity, opacity, damping);
+      model.material.transparent = model.material.opacity < 0.999;
+      model.material.depthWrite = !model.material.transparent;
+      if (Math.abs(model.material.opacity - opacity) > 0.001) invalidate();
+    }
+    if (ref.current.position.distanceTo(target) > 0.001 || Math.abs(ref.current.rotation.y - rotation) > 0.0001) invalidate();
   });
   const edge = useMemo(() => new THREE.BoxGeometry(...part.size), [part]);
   useEffect(() => () => edge.dispose(), [edge]);
@@ -77,12 +123,16 @@ function Part({ part }: { part: PhoneComponent }) {
   return (
     <group
       ref={ref}
+      name={`component-${part.id}`}
       position={part.originalPosition}
+      visible={!isolated || active}
       onClick={(e) => {
+        if (dragged?.current || e.delta > 2 || (isolated && !active)) return;
         e.stopPropagation();
         select(part.id);
       }}
       onPointerOver={(e) => {
+        if (isolated && !active) return;
         e.stopPropagation();
         document.body.style.cursor = "pointer";
       }}
@@ -90,6 +140,13 @@ function Part({ part }: { part: PhoneComponent }) {
         document.body.style.cursor = "default";
       }}
     >
+      {model ? <>
+        <mesh geometry={model.geometry} material={model.material} castShadow receiveShadow />
+        {(active || faulty) && <lineSegments>
+          <edgesGeometry args={[edge]} />
+          <lineBasicMaterial color={faulty ? "#ff6378" : "#65bdff"} />
+        </lineSegments>}
+      </> : <group>
       <RoundedBox
         visible={showBody}
         args={part.size}
@@ -290,48 +347,60 @@ function Part({ part }: { part: PhoneComponent }) {
           />
         </RoundedBox>
       )}
+      </group>}
+      {labelAllowed && (!isolated || active) && (isolated || (explosion > 15 && (labels || active))) && (
+        <Html position={[0, part.size[1] / 2 + 0.22, 0]} center zIndexRange={[5, 0]} className="part-label" style={{ pointerEvents: "none" }}>
+          <span className={active ? "active" : ""}>{part.name}</span>
+        </Html>
+      )}
     </group>
   );
 }
-function Rig({ view, reset }: { view: string; reset: number }) {
+function Rig({ view, reset, isolated, reducedMotion, damping }: { view: string; reset: number; isolated: boolean; reducedMotion: boolean; damping: boolean }) {
   const controls = useRef<any>(null);
   const { camera, invalidate } = useThree();
   const selected = useStore((s) => s.selected);
+  const expanded = useStore((s) => s.explosion > 35);
+  const { width, height } = useThree((s) => s.size);
   const target = useRef(new THREE.Vector3(8, 4, 10));
   const focus = useRef(new THREE.Vector3());
   useEffect(() => {
     const positions: Record<string, number[]> = {
-      perspective: [8, 4, 10],
+      perspective: [9, 6, 12],
       front: [0, 0, 12],
       back: [0, 0, -12],
       side: [12, 0, 0],
     };
     target.current.set(...(positions[view] as [number, number, number]));
     focus.current.set(0, 0, 0);
-  }, [view, reset]);
-  useEffect(() => {
     const part = components.find((p) => p.id === selected);
-    if (part) {
+    if (part && !isolated) {
       focus.current.set(
         part.originalPosition[0] * 0.35,
         part.originalPosition[1] * 0.35,
         0,
       );
-      target.current.copy(camera.position).multiplyScalar(0.92);
     }
-  }, [selected]);
+    if (part && isolated) {
+      focus.current.set(0, 0, 0);
+      target.current.normalize().multiplyScalar(Math.max(3.5, Math.max(...part.size) * 2.3));
+    } else if (!isolated) {
+      target.current.normalize().multiplyScalar(expanded ? Math.min(30, Math.max(16.5, 16.5 * height / width)) : 13.4);
+    }
+  }, [selected, isolated, camera, view, reset, expanded, width, height]);
   const moving = useRef(true);
   useEffect(() => {
     moving.current = true;
     invalidate();
-  }, [view, reset, selected, invalidate]);
+  }, [view, reset, selected, isolated, reducedMotion, expanded, width, height, invalidate]);
   useFrame((_, dt) => {
     if (moving.current && controls.current) {
-      camera.position.lerp(target.current, 1 - Math.exp(-dt * 5));
-      controls.current.target.lerp(focus.current, 1 - Math.exp(-dt * 5));
+      const damping = reducedMotion ? 1 : 1 - Math.exp(-dt * 7);
+      camera.position.lerp(target.current, damping);
+      controls.current.target.lerp(focus.current, damping);
       controls.current.update();
       invalidate();
-      if (camera.position.distanceTo(target.current) < 0.02)
+      if (camera.position.distanceTo(target.current) < 0.02 && controls.current.target.distanceTo(focus.current) < 0.02)
         moving.current = false;
     }
   });
@@ -339,25 +408,48 @@ function Rig({ view, reset }: { view: string; reset: number }) {
     <OrbitControls
       ref={controls}
       makeDefault
-      enableDamping
-      minDistance={5}
-      maxDistance={22}
+      enableDamping={damping && !reducedMotion}
+      minDistance={2.5}
+      maxDistance={32}
       onStart={() => {
         moving.current = false;
       }}
     />
   );
 }
-export default function Viewer({
+export default memo(function Viewer({
   view,
   reset,
   quality,
+  detailed = true,
+  isolated = false,
+  labels = false,
 }: {
   view: string;
   reset: number;
   quality: string;
+  detailed?: boolean;
+  isolated?: boolean;
+  labels?: boolean;
 }) {
   const [lost, setLost] = useState(false);
+  const [modelStatus, setModelStatus] = useState<"loading" | "ready" | "fallback">("loading");
+  const pointerDown = useRef<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
+  const [reducedMotion, setReducedMotion] = useState(() => matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const modelReady = useCallback(() => setModelStatus("ready"), []);
+  const modelFailed = useCallback(() => setModelStatus("fallback"), []);
+  useEffect(() => {
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const renderPart = useCallback((part: PhoneComponent, model?: AssemblyGeometry, key?: string) => (
+    <Part key={key ?? part.id} part={part} model={model} isolated={isolated} labels={labels} reducedMotion={reducedMotion} dragged={dragged}
+      labelAllowed={!key || !["assembly-01", "assembly-03", "assembly-09"].includes(key)} />
+  ), [isolated, labels, reducedMotion]);
+  const schematic = components.map((part) => renderPart(part));
   const [supported] = useState(() => {
     try {
       const context = document.createElement("canvas").getContext("webgl2");
@@ -381,10 +473,22 @@ export default function Viewer({
     );
   return (
     <Boundary>
+      {detailed && <div className={`model-status ${modelStatus}`} role="status">
+        {modelStatus === "loading" ? "Carregando modelo detalhado…" : modelStatus === "ready" ? "Modelo detalhado carregado" : "Modelo indisponível · esquema técnico ativo"}
+      </div>}
       <Canvas
+        onPointerDownCapture={(event) => {
+          pointerDown.current = { x: event.clientX, y: event.clientY };
+          dragged.current = false;
+        }}
+        onPointerUpCapture={(event) => {
+          const start = pointerDown.current;
+          dragged.current = !!start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4;
+          pointerDown.current = null;
+        }}
         frameloop="demand"
-        shadows={quality !== "Baixa"}
-        dpr={[1, quality === "Alta" ? 2 : 1.3]}
+        shadows={quality === "Alta"}
+        dpr={[1, quality === "Alta" ? 2 : 1]}
         camera={{ position: [8, 4, 10], fov: 38 }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener("webglcontextlost", (e) => {
@@ -400,17 +504,17 @@ export default function Viewer({
         <directionalLight
           position={[4, 8, 5]}
           intensity={2.7}
-          castShadow
+          castShadow={quality === "Alta"}
           shadow-mapSize={[1024, 1024]}
         />
         <pointLight position={[-4, 2, -4]} intensity={22} color="#4c91ff" />
         <pointLight position={[3, -2, 4]} intensity={13} color="#9fe4d1" />
-        <Suspense fallback={<Html center>Carregando modelo…</Html>}>
-          {components.map((part) => (
-            <Part key={part.id} part={part} />
-          ))}
-        </Suspense>
-        {quality !== "Baixa" && (
+        {detailed ? <ModelBoundary onError={modelFailed} fallback={schematic}>
+          <Suspense fallback={schematic}>
+            <ImportedPhone renderPart={renderPart} onReady={modelReady} />
+          </Suspense>
+        </ModelBoundary> : schematic}
+        {quality === "Alta" && (
           <ContactShadows
             position={[0, -3.48, 0]}
             opacity={0.32}
@@ -427,8 +531,8 @@ export default function Viewer({
           fadeDistance={25}
           infiniteGrid
         />
-        <Rig view={view} reset={reset} />
+        <Rig view={view} reset={reset} isolated={isolated} reducedMotion={reducedMotion} damping={quality === "Alta"} />
       </Canvas>
     </Boundary>
   );
-}
+});

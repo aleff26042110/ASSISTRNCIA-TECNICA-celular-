@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 const Viewer = lazy(() => import("./Viewer"));
 import { components, phone, researchSources } from "./data";
+import { disassemblySteps } from "./disassembly";
 import { defaultDiagnosis, useStore } from "./store";
 import { exportPdf, localQuotes, money, total } from "./services";
 import { api } from "./api";
@@ -357,6 +358,9 @@ function Workspace() {
   const [view, setView] = useState("perspective");
   const [reset, setReset] = useState(0);
   const [quality, setQuality] = useState("Média");
+  const [detailed, setDetailed] = useState(true);
+  const [isolated, setIsolated] = useState(false);
+  const [labels, setLabels] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [direction, setDirection] = useState(1);
   const [list, setList] = useState(true);
@@ -364,6 +368,7 @@ function Workspace() {
   const [notice, setNotice] = useState("");
   const part = components.find((p) => p.id === selected)!;
   const d = diagnoses[selected] || defaultDiagnosis(selected);
+  const currentStep = [...disassemblySteps].reverse().find((step) => explosion >= step.value)!;
   useEffect(() => {
     if (tab !== "viewer") setPlaying(false);
   }, [tab]);
@@ -384,7 +389,7 @@ function Workspace() {
         0,
         Math.min(
           100,
-          s.explosion + (Math.max(0, now - last) / 1000) * 16 * direction,
+          s.explosion + Math.min(0.1, Math.max(0, now - last) / 1000) * 16 * direction,
         ),
       );
       last = now;
@@ -540,6 +545,10 @@ function Workspace() {
                 <span>
                   <span className="dot" /> VISUALIZAÇÃO AO VIVO
                 </span>
+                <div className="model-mode" aria-label="Tipo de visualização">
+                  <button aria-pressed={detailed} onClick={() => setDetailed(true)}>Modelo detalhado</button>
+                  <button aria-pressed={!detailed} onClick={() => setDetailed(false)}>Esquema técnico</button>
+                </div>
                 <select
                   aria-label="Qualidade gráfica"
                   value={quality}
@@ -556,11 +565,11 @@ function Workspace() {
                     <div className="fallback">Preparando visualizador 3D…</div>
                   }
                 >
-                  <Viewer view={view} reset={reset} quality={quality} />
+                  <Viewer view={view} reset={reset} quality={quality} detailed={detailed} isolated={isolated} labels={labels} />
                 </Suspense>
                 <div className="model-label">
                   <span>01 / IPHONE 15</span>
-                  <small>RECONSTRUÇÃO EDUCACIONAL</small>
+                  <small>{detailed ? "MODELO DETALHADO" : "ESQUEMA TÉCNICO"} · ESTUDO EDUCACIONAL</small>
                 </div>
                 <div className="view-controls">
                   {[
@@ -570,6 +579,7 @@ function Workspace() {
                   ].map(([v, label]) => (
                     <button
                       className={view === v ? "active" : ""}
+                      aria-pressed={view === v}
                       key={v}
                       onClick={() => setView(v)}
                     >
@@ -598,14 +608,27 @@ function Workspace() {
                   </span>
                   <strong>{Math.round(explosion)}%</strong>
                 </div>
+                <div className="disassembly-steps" aria-label="Etapas da desmontagem">
+                  {disassemblySteps.map((step, index) => <button
+                    key={step.value}
+                    aria-pressed={!isolated && currentStep.value === step.value}
+                    onClick={() => {
+                      setPlaying(false);
+                      setIsolated(false);
+                      explode(step.value);
+                    }}
+                  ><small>0{index + 1}</small>{step.label}</button>)}
+                </div>
                 <input
                   aria-label="Desmontagem"
+                  aria-valuetext={`${Math.round(explosion)}% — ${currentStep.description}`}
                   type="range"
                   min="0"
                   max="100"
                   value={explosion}
                   onChange={(e) => {
                     setPlaying(false);
+                    setIsolated(false);
                     explode(Number(e.target.value));
                   }}
                 />
@@ -613,9 +636,17 @@ function Workspace() {
                   <span>Montado</span>
                   <span>Visão explodida</span>
                 </div>
+                <div className="inspection-tools">
+                  <span className="disassembly-caption" aria-live="polite">{isolated ? `Inspecionando: ${part.name}` : currentStep.description}</span>
+                  <div>
+                    <button aria-pressed={labels} onClick={() => setLabels(!labels)}>Mostrar nomes</button>
+                    <button aria-pressed={isolated} onClick={() => { setPlaying(false); setIsolated(!isolated); }}>Isolar peça</button>
+                  </div>
+                </div>
                 <div className="animation-buttons">
                   <button
                     onClick={() => {
+                      setIsolated(false);
                       if (
                         !playing &&
                         ((direction === 1 && explosion === 100) ||
@@ -628,13 +659,15 @@ function Workspace() {
                     {playing ? <Pause size={15} /> : <Play size={15} />}{" "}
                     {playing ? "Pausar" : "Continuar"}
                   </button>
-                  <button onClick={() => setDirection(-direction)}>
+                  <button aria-pressed={direction === -1} title={direction === 1 ? "Alternar para remontagem" : "Alternar para desmontagem"} onClick={() => setDirection(-direction)}>
                     <ArrowLeftRight size={15} />
                     Inverter
                   </button>
                   <button
                     onClick={() => {
                       setPlaying(false);
+                      setIsolated(false);
+                      setDirection(1);
                       explode(0);
                     }}
                   >
